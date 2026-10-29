@@ -1,0 +1,17 @@
+venv/
+.venv-web/
+__pycache__/
+*.pyc
+.git/
+.env
+*.db
+*.db-wal
+*.db-shm
+backups/
+build/
+mailbot_data/
+mailbot_src/
+.webtest/
+frontend/node_modules/
+frontend/dist/
+web/static/

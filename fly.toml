@@ -1,0 +1,40 @@
+app = "expense-bot-vadim"
+
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DATA_DIR = "/data"
+  # Часовой пояс приложения: без него контейнер живёт в UTC и «сегодня» у пользователя
+  # съезжает на день назад (вечером трата уходит вчерашним числом, ночью блокируется текущий день)
+  TZ = "Europe/Bratislava"
+  # Один аккаунт: telegram user_id, под которым лежат все траты в базе
+  APP_USER_ID = "1084411025"
+  AUTH_USERNAME = "vadim"
+
+# Сайт живёт в том же контейнере, что почтовый бот. Long polling IMAP держит машину
+# включённой круглосуточно, поэтому авто-стоп выключен и не экономит ничего.
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "25s"
+    method = "GET"
+    path = "/api/health"
+
+[mounts]
+  source = "ukf_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256MB"
+  count = 1
