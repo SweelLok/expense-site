@@ -67,8 +67,8 @@ const maxCategory = computed(() => Math.max(1, ...(data.value?.by_category || []
         :key="item.value"
         class="rounded-full border px-3.5 py-1.5 text-[12.5px] transition-all duration-200"
         :class="period === item.value
-          ? 'border-[--color-ink] bg-[--color-ink] text-white'
-          : 'border-[--color-line] bg-white text-[--color-muted] hover:border-[#d8d8dd] hover:text-[--color-ink]'"
+          ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[#2a1608]'
+          : 'border-[var(--color-line)] bg-white text-[var(--color-muted)] hover:border-[var(--color-line-strong)] hover:text-[var(--color-ink)]'"
         @click="period = item.value"
       >
         {{ item.label }}
@@ -77,25 +77,25 @@ const maxCategory = computed(() => Math.max(1, ...(data.value?.by_category || []
 
     <div v-if="data" class="space-y-5">
       <section class="card animate-fade-up p-5">
-        <p class="text-[12px] uppercase tracking-wide text-[--color-muted]">Потрачено</p>
+        <p class="text-[12px] uppercase tracking-wide text-[var(--color-muted)]">Потрачено</p>
         <p class="mt-1 text-[32px] font-medium leading-none">
-          <AnimatedNumber :value="data.total" /><span class="ml-1 text-[19px] text-[--color-muted]">€</span>
+          <AnimatedNumber :value="data.total" /><span class="ml-1 text-[19px] text-[var(--color-muted)]">€</span>
         </p>
-        <p class="mt-2 text-[12.5px] text-[--color-muted]">
+        <p class="mt-2 text-[12.5px] text-[var(--color-muted)]">
           {{ shortDate(data.start) }} — {{ shortDate(data.end) }}
         </p>
         <div class="mt-4 grid grid-cols-3 gap-3 text-center">
-          <div class="rounded-xl bg-[#fafafa] px-2 py-2.5">
-            <p class="text-[11px] text-[--color-muted]">Записей</p>
+          <div class="rounded-xl bg-black/[0.03] px-2 py-2.5">
+            <p class="text-[11px] text-[var(--color-muted)]">Записей</p>
             <p class="tabular mt-0.5 text-[15px] font-medium">{{ data.count }}</p>
           </div>
-          <div class="rounded-xl bg-[#fafafa] px-2 py-2.5">
-            <p class="text-[11px] text-[--color-muted]">В среднем в день</p>
+          <div class="rounded-xl bg-black/[0.03] px-2 py-2.5">
+            <p class="text-[11px] text-[var(--color-muted)]">В среднем в день</p>
             <p class="tabular mt-0.5 text-[15px] font-medium">{{ eur(data.avg_per_day) }}</p>
           </div>
-          <div class="rounded-xl bg-[#fafafa] px-2 py-2.5">
-            <p class="text-[11px] text-[--color-muted]">Доходы</p>
-            <p class="tabular mt-0.5 text-[15px] font-medium text-[--color-good]">{{ eur(data.income_total) }}</p>
+          <div class="rounded-xl bg-black/[0.03] px-2 py-2.5">
+            <p class="text-[11px] text-[var(--color-muted)]">Доходы</p>
+            <p class="tabular mt-0.5 text-[15px] font-medium text-[var(--color-good)]">{{ eur(data.income_total) }}</p>
           </div>
         </div>
       </section>
@@ -109,14 +109,14 @@ const maxCategory = computed(() => Math.max(1, ...(data.value?.by_category || []
               :key="item.value"
               class="rounded-full border px-2.5 py-1 text-[11.5px] transition-all duration-200"
               :class="monthsWindow === item.value
-                ? 'border-[--color-ink] bg-[--color-ink] text-white'
-                : 'border-[--color-line] bg-white text-[--color-muted] hover:border-[#d8d8dd] hover:text-[--color-ink]'"
+                ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[#2a1608]'
+                : 'border-[var(--color-line)] bg-white text-[var(--color-muted)] hover:border-[var(--color-line-strong)] hover:text-[var(--color-ink)]'"
               @click="monthsWindow = item.value"
             >{{ item.label }}</button>
           </div>
         </div>
 
-        <p class="mt-1 text-[12.5px] text-[--color-muted]">
+        <p class="mt-1 text-[12.5px] text-[var(--color-muted)]">
           всего {{ eur(monthly.spent_total) }} · в среднем {{ eur(monthly.avg_per_month) }} в месяц
           <template v-if="monthly.income_total"> · доходы {{ eur(monthly.income_total) }}</template>
         </p>
@@ -132,14 +132,14 @@ const maxCategory = computed(() => Math.max(1, ...(data.value?.by_category || []
           <div v-for="row in data.by_category" :key="row.category_name">
             <div class="flex items-baseline justify-between gap-3 text-[13px]">
               <span>{{ row.category_name }}</span>
-              <span class="tabular text-[--color-muted]">{{ eur(row.spent) }} · {{ row.share }}%</span>
+              <span class="tabular text-[var(--color-muted)]">{{ eur(row.spent) }} · {{ row.share }}%</span>
             </div>
             <div class="mt-1.5">
               <Bar :value="row.spent" :max="maxCategory" tone="accent" height="5px" />
             </div>
           </div>
         </div>
-        <p v-else class="mt-3 text-[13px] text-[--color-muted]">За этот период трат нет</p>
+        <p v-else class="mt-3 text-[13px] text-[var(--color-muted)]">За этот период трат нет</p>
       </section>
 
       <section v-if="days.length" class="card animate-fade-up p-5" style="animation-delay: 110ms">
@@ -148,36 +148,36 @@ const maxCategory = computed(() => Math.max(1, ...(data.value?.by_category || []
           <div
             v-for="(row, index) in days"
             :key="row.day"
-            class="group relative flex-1 rounded-t-[4px] bg-[--color-accent]/15 transition-all duration-500 hover:bg-[--color-accent]/35"
+            class="group relative flex-1 rounded-t-[4px] bg-[var(--color-accent)]/15 transition-all duration-500 hover:bg-[var(--color-accent)]/35"
             :style="{ height: Math.max(4, (row.spent / maxDay) * 100) + '%', transitionDelay: index * 12 + 'ms' }"
             :title="`${row.day}: ${eur(row.spent)}`"
           />
         </div>
-        <div class="mt-2 flex justify-between text-[11.5px] text-[--color-muted]">
+        <div class="mt-2 flex justify-between text-[11.5px] text-[var(--color-muted)]">
           <span>{{ shortDate(days[0]?.day) }}</span>
           <span>{{ shortDate(days[days.length - 1]?.day) }}</span>
         </div>
       </section>
 
       <section class="space-y-2">
-        <h2 class="px-1 text-[13px] text-[--color-muted]">Все записи за период</h2>
-        <div class="card divide-y divide-[--color-line] overflow-hidden">
+        <h2 class="px-1 text-[13px] text-[var(--color-muted)]">Все записи за период</h2>
+        <div class="card divide-y divide-[var(--color-line)] overflow-hidden">
           <div v-for="expense in data.expenses" :key="expense.id" class="flex items-center gap-3 px-4 py-2.5">
             <div class="min-w-0 flex-1">
               <p class="truncate text-[13.5px]">
                 <span class="font-medium">{{ expense.category_name }}</span>
-                <span v-if="expense.description" class="text-[--color-muted]"> · {{ expense.description }}</span>
+                <span v-if="expense.description" class="text-[var(--color-muted)]"> · {{ expense.description }}</span>
               </p>
-              <p class="text-[11.5px] text-[--color-muted]">{{ shortDate(expense.expense_date) }}</p>
+              <p class="text-[11.5px] text-[var(--color-muted)]">{{ shortDate(expense.expense_date) }}</p>
             </div>
             <span class="tabular text-[13.5px] font-medium">{{ eur(expense.amount) }}</span>
           </div>
-          <p v-if="!data.expenses.length" class="px-4 py-6 text-center text-[13px] text-[--color-muted]">Пусто</p>
+          <p v-if="!data.expenses.length" class="px-4 py-6 text-center text-[13px] text-[var(--color-muted)]">Пусто</p>
         </div>
       </section>
     </div>
 
-    <div v-else class="card animate-fade-in p-8 text-center text-[13px] text-[--color-muted]">
+    <div v-else class="card animate-fade-in p-8 text-center text-[13px] text-[var(--color-muted)]">
       {{ loading ? 'Считаю…' : 'Нет данных' }}
     </div>
   </div>

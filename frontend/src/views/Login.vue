@@ -38,23 +38,25 @@ async function submit() {
   <div class="grid min-h-full place-items-center px-4 py-16">
     <div class="w-full max-w-sm animate-fade-up">
       <div class="mb-8 text-center">
-        <div class="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-[--color-ink] text-xl font-semibold text-white">€</div>
-        <h1 class="text-[19px] font-medium tracking-tight">Траты</h1>
-        <p class="mt-1 text-[13px] text-[--color-muted]">Личный трекер расходов</p>
+        <div class="relative mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#ffb46b] to-[#ff8a5c] shadow-[0_0_28px_-6px_rgba(255,158,92,0.7)]">
+          <span class="h-3.5 w-3.5 rounded-full bg-white/85"></span>
+        </div>
+        <h1 class="text-[19px] font-medium tracking-tight">Орбита</h1>
+        <p class="mt-1 text-[13px] text-[var(--color-muted)]">Календарь · задачи · заметки · траты</p>
       </div>
 
       <form class="card space-y-3 p-5" @submit.prevent="submit">
         <label class="block">
-          <span class="mb-1.5 block text-[12px] text-[--color-muted]">Логин</span>
+          <span class="mb-1.5 block text-[12px] text-[var(--color-muted)]">Логин</span>
           <input v-model="username" class="field" autocomplete="username" autocapitalize="none" required />
         </label>
         <label class="block">
-          <span class="mb-1.5 block text-[12px] text-[--color-muted]">Пароль</span>
+          <span class="mb-1.5 block text-[12px] text-[var(--color-muted)]">Пароль</span>
           <input v-model="password" type="password" class="field" autocomplete="current-password" required />
         </label>
 
         <Transition name="page">
-          <p v-if="error" class="rounded-xl bg-[#fef2f2] px-3 py-2 text-[12.5px] text-[--color-bad]">{{ error }}</p>
+          <p v-if="error" class="rounded-xl bg-[var(--color-bad)]/10 px-3 py-2 text-[12.5px] text-[var(--color-bad)]">{{ error }}</p>
         </Transition>
 
         <button class="btn btn-primary w-full" :disabled="busy">
@@ -62,7 +64,7 @@ async function submit() {
         </button>
       </form>
 
-      <p class="mt-6 text-center text-[12px] text-[--color-muted]">Доступ только для владельца аккаунта</p>
+      <p class="mt-6 text-center text-[12px] text-[var(--color-muted)]">Доступ только для владельца аккаунта</p>
     </div>
   </div>
 </template>

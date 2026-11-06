@@ -82,11 +82,11 @@ async function remove(sub) {
     <section class="card animate-fade-up p-5">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <p class="text-[12px] uppercase tracking-wide text-[--color-muted]">В месяц по подпискам</p>
+          <p class="text-[12px] uppercase tracking-wide text-[var(--color-muted)]">В месяц по подпискам</p>
           <p class="mt-1 text-[32px] font-medium leading-none">
-            <AnimatedNumber :value="data?.monthly_total || 0" /><span class="ml-1 text-[19px] text-[--color-muted]">€</span>
+            <AnimatedNumber :value="data?.monthly_total || 0" /><span class="ml-1 text-[19px] text-[var(--color-muted)]">€</span>
           </p>
-          <p class="mt-2 text-[12.5px] text-[--color-muted]">
+          <p class="mt-2 text-[12.5px] text-[var(--color-muted)]">
             {{ subscriptions.length }} платежей · вычитаются из денег месяца в плане
           </p>
         </div>
@@ -98,21 +98,21 @@ async function remove(sub) {
       <div v-for="(sub, index) in subscriptions" :key="sub.id" class="card card-hover flex items-center gap-3 p-4" :style="{ animationDelay: index * 35 + 'ms' }">
         <div class="min-w-0 flex-1">
           <p class="truncate text-[14px] font-medium">{{ sub.name }}</p>
-          <p class="mt-0.5 text-[11.5px] text-[--color-muted]">
+          <p class="mt-0.5 text-[11.5px] text-[var(--color-muted)]">
             {{ eur(sub.amount) }} · {{ sub.period_label }}
             <span v-if="sub.category_name"> · {{ sub.category_name }}</span>
           </p>
         </div>
         <div class="text-right">
           <p class="tabular text-[14px] font-medium">{{ eur(sub.monthly_amount) }}</p>
-          <p class="text-[11px] text-[--color-muted]">в месяц</p>
+          <p class="text-[11px] text-[var(--color-muted)]">в месяц</p>
         </div>
         <div class="flex flex-col gap-1 text-[12px]">
-          <button class="text-[--color-muted] transition-colors hover:text-[--color-ink]" @click="openEdit(sub)">изм.</button>
-          <button class="text-[--color-muted] transition-colors hover:text-[--color-bad]" @click="remove(sub)">удал.</button>
+          <button class="text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]" @click="openEdit(sub)">изм.</button>
+          <button class="text-[var(--color-muted)] transition-colors hover:text-[var(--color-bad)]" @click="remove(sub)">удал.</button>
         </div>
       </div>
-      <p v-if="data && !subscriptions.length" class="card p-6 text-center text-[13px] text-[--color-muted]">
+      <p v-if="data && !subscriptions.length" class="card p-6 text-center text-[13px] text-[var(--color-muted)]">
         Подписок пока нет
       </p>
     </div>

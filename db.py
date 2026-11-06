@@ -90,6 +90,45 @@ class Database:
                     is_bot INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL DEFAULT (datetime('now'))
                 );
+
+                CREATE TABLE IF NOT EXISTS todos (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    text TEXT NOT NULL,
+                    note TEXT,
+                    due_date TEXT,
+                    done INTEGER NOT NULL DEFAULT 0,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    completed_at TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS notes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    title TEXT,
+                    body TEXT,
+                    pinned INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS habits (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    emoji TEXT,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS habit_log (
+                    habit_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    date TEXT NOT NULL,
+                    done_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    PRIMARY KEY (habit_id, date)
+                );
             """)
 
             # Миграции баз, созданных прошлыми версиями бота
@@ -104,7 +143,7 @@ class Database:
     async def reset_user(self, user_id: int):
         """Полная очистка данных пользователя: траты, доходы, подписки, баланс, лог сообщений, настройки."""
         async with aiosqlite.connect(self.db_path) as db:
-            for table in ("expenses", "incomes", "subscriptions", "balances", "message_log", "settings"):
+            for table in ("expenses", "incomes", "subscriptions", "balances", "message_log", "settings", "todos", "notes", "habits", "habit_log"):
                 await db.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
             await db.commit()
 
@@ -136,6 +175,12 @@ class Database:
                 (user_id, key, str(value)),
             )
             await db.commit()
+
+    async def delete_setting(self, user_id: int, key: str) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute("DELETE FROM settings WHERE user_id = ? AND key = ?", (user_id, key))
+            await db.commit()
+            return cursor.rowcount > 0
 
     # --- Balances ---
 
@@ -567,4 +612,182 @@ class Database:
                 "DELETE FROM message_log WHERE user_id = ? AND chat_id = ?",
                 (user_id, chat_id),
             )
+            await db.commit()
+
+    # --- Todos ---------------------------------------------------------------
+
+    async def get_todos(self, user_id: int, include_done: bool = True) -> list[dict]:
+        query = "SELECT * FROM todos WHERE user_id = ?"
+        params: list = [user_id]
+        if not include_done:
+            query += " AND done = 0"
+        # Незавершённые впереди; внутри — по дате (без даты в конец), потом по порядку.
+        query += " ORDER BY done ASC, (due_date IS NULL) ASC, due_date ASC, sort_order ASC, id DESC"
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(query, params) as cur:
+                rows = await cur.fetchall()
+                return [dict(r) for r in rows]
+
+    async def get_todo(self, user_id: int, todo_id: int) -> dict | None:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM todos WHERE user_id = ? AND id = ?", (user_id, todo_id)
+            ) as cur:
+                row = await cur.fetchone()
+                return dict(row) if row else None
+
+    async def add_todo(self, user_id: int, text: str, note: str | None = None,
+                       due_date: str | None = None) -> int:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "INSERT INTO todos (user_id, text, note, due_date, created_at) "
+                "VALUES (?, ?, ?, ?, datetime('now','localtime'))",
+                (user_id, text, note, due_date),
+            )
+            await db.commit()
+            return cursor.lastrowid
+
+    async def update_todo(self, user_id: int, todo_id: int, **fields) -> bool:
+        if not fields:
+            return False
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values = list(fields.values()) + [user_id, todo_id]
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                f"UPDATE todos SET {set_clause} WHERE user_id = ? AND id = ?", values
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+
+    async def delete_todo(self, user_id: int, todo_id: int) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute("DELETE FROM todos WHERE user_id = ? AND id = ?", (user_id, todo_id))
+            await db.commit()
+            return cursor.rowcount > 0
+
+    # --- Notes ---------------------------------------------------------------
+
+    async def get_notes(self, user_id: int) -> list[dict]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM notes WHERE user_id = ? ORDER BY pinned DESC, updated_at DESC, id DESC",
+                (user_id,),
+            ) as cur:
+                rows = await cur.fetchall()
+                return [dict(r) for r in rows]
+
+    async def get_note(self, user_id: int, note_id: int) -> dict | None:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM notes WHERE user_id = ? AND id = ?", (user_id, note_id)
+            ) as cur:
+                row = await cur.fetchone()
+                return dict(row) if row else None
+
+    async def add_note(self, user_id: int, title: str | None, body: str) -> int:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "INSERT INTO notes (user_id, title, body, created_at, updated_at) "
+                "VALUES (?, ?, ?, datetime('now','localtime'), datetime('now','localtime'))",
+                (user_id, title, body),
+            )
+            await db.commit()
+            return cursor.lastrowid
+
+    async def update_note(self, user_id: int, note_id: int, **fields) -> bool:
+        if not fields:
+            return False
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values = list(fields.values()) + [user_id, note_id]
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                f"UPDATE notes SET {set_clause}, updated_at = datetime('now','localtime') "
+                f"WHERE user_id = ? AND id = ?", values
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+
+    async def delete_note(self, user_id: int, note_id: int) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute("DELETE FROM notes WHERE user_id = ? AND id = ?", (user_id, note_id))
+            await db.commit()
+            return cursor.rowcount > 0
+
+    # --- Habits --------------------------------------------------------------
+
+    async def get_habits(self, user_id: int) -> list[dict]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM habits WHERE user_id = ? ORDER BY sort_order ASC, created_at ASC, id ASC",
+                (user_id,),
+            ) as cur:
+                return [dict(r) for r in await cur.fetchall()]
+
+    async def get_habit(self, user_id: int, habit_id: int) -> dict | None:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM habits WHERE user_id = ? AND id = ?", (user_id, habit_id)
+            ) as cur:
+                row = await cur.fetchone()
+                return dict(row) if row else None
+
+    async def add_habit(self, user_id: int, name: str, emoji: str | None = None) -> int:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "INSERT INTO habits (user_id, name, emoji, created_at) "
+                "VALUES (?, ?, ?, datetime('now','localtime'))",
+                (user_id, name, emoji),
+            )
+            await db.commit()
+            return cursor.lastrowid
+
+    async def update_habit(self, user_id: int, habit_id: int, **fields) -> bool:
+        if not fields:
+            return False
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values = list(fields.values()) + [user_id, habit_id]
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                f"UPDATE habits SET {set_clause} WHERE user_id = ? AND id = ?", values
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+
+    async def delete_habit(self, user_id: int, habit_id: int) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("DELETE FROM habit_log WHERE habit_id = ? AND user_id = ?", (habit_id, user_id))
+            cursor = await db.execute("DELETE FROM habits WHERE id = ? AND user_id = ?", (habit_id, user_id))
+            await db.commit()
+            return cursor.rowcount > 0
+
+    async def get_habit_log(self, user_id: int, start: str, end: str) -> list[dict]:
+        """Отмеченные дни: [{habit_id, date}, ...] (строка = привычка выполнена в этот день)."""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT habit_id, date FROM habit_log WHERE user_id = ? AND date >= ? AND date <= ?",
+                (user_id, start, end),
+            ) as cur:
+                return [dict(r) for r in await cur.fetchall()]
+
+    async def mark_habit(self, user_id: int, habit_id: int, date: str, done: bool) -> None:
+        async with aiosqlite.connect(self.db_path) as db:
+            if done:
+                await db.execute(
+                    "INSERT INTO habit_log (habit_id, user_id, date, done_at) "
+                    "VALUES (?, ?, ?, datetime('now','localtime')) "
+                    "ON CONFLICT(habit_id, date) DO NOTHING",
+                    (habit_id, user_id, date),
+                )
+            else:
+                await db.execute(
+                    "DELETE FROM habit_log WHERE habit_id = ? AND user_id = ? AND date = ?",
+                    (habit_id, user_id, date),
+                )
             await db.commit()

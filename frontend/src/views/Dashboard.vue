@@ -161,15 +161,15 @@ const toneOf = (item) => (item.left < 0 ? 'bad' : item.left <= (plan.value?.warn
 <template>
   <div v-if="plan" class="space-y-5">
     <!-- Сводка месяца -->
-    <section class="card animate-fade-up p-5">
+    <section class="card p-5" v-reveal>
       <div class="flex items-start justify-between gap-4">
         <div>
-          <p class="text-[12px] uppercase tracking-wide text-[--color-muted]">Баланс</p>
+          <p class="text-[12px] uppercase tracking-wide text-[var(--color-muted)]">Баланс</p>
           <p class="mt-1 text-[34px] font-medium leading-none">
             <AnimatedNumber :value="plan.balance" />
-            <span class="ml-1 text-[20px] text-[--color-muted]">€</span>
+            <span class="ml-1 text-[20px] text-[var(--color-muted)]">€</span>
           </p>
-          <p class="mt-2 text-[12.5px] text-[--color-muted]">
+          <p class="mt-2 text-[12.5px] text-[var(--color-muted)]">
             {{ monthName(plan.month_start) }} · план от «{{ plan.base_source }}» — {{ eur(plan.base) }}
           </p>
         </div>
@@ -177,23 +177,23 @@ const toneOf = (item) => (item.left < 0 ? 'bad' : item.left <= (plan.value?.warn
       </div>
 
       <div class="mt-5 grid grid-cols-3 gap-3 text-center">
-        <div class="rounded-xl bg-[#fafafa] px-3 py-2.5">
-          <p class="text-[11px] text-[--color-muted]">Сегодня</p>
+        <div class="rounded-xl bg-black/[0.03] px-3 py-2.5">
+          <p class="text-[11px] text-[var(--color-muted)]">Сегодня</p>
           <p class="tabular mt-0.5 text-[15px] font-medium">{{ eur(plan.today_spent) }}</p>
         </div>
-        <div class="rounded-xl bg-[#fafafa] px-3 py-2.5">
-          <p class="text-[11px] text-[--color-muted]">С 1-го числа</p>
+        <div class="rounded-xl bg-black/[0.03] px-3 py-2.5">
+          <p class="text-[11px] text-[var(--color-muted)]">С 1-го числа</p>
           <p class="tabular mt-0.5 text-[15px] font-medium">{{ eur(plan.spent_this_month) }}</p>
         </div>
-        <div class="rounded-xl bg-[#fafafa] px-3 py-2.5">
-          <p class="text-[11px] text-[--color-muted]">За 7 дней</p>
+        <div class="rounded-xl bg-black/[0.03] px-3 py-2.5">
+          <p class="text-[11px] text-[var(--color-muted)]">За 7 дней</p>
           <p class="tabular mt-0.5 text-[15px] font-medium">{{ eur(state.overview.week_spent) }}</p>
         </div>
       </div>
 
       <div class="mt-4">
         <Bar :value="monthProgress" :max="100" tone="accent" height="4px" />
-        <div class="mt-2 flex justify-between text-[11.5px] text-[--color-muted]">
+        <div class="mt-2 flex justify-between text-[11.5px] text-[var(--color-muted)]">
           <span>распределено {{ eur(plan.planned_total) }}</span>
           <span>до конца месяца {{ plan.days_left }} дн.</span>
         </div>
@@ -201,20 +201,20 @@ const toneOf = (item) => (item.left < 0 ? 'bad' : item.left <= (plan.value?.warn
 
       <p
         v-if="plan.unallocated < 0"
-        class="mt-3 rounded-xl bg-[#fef2f2] px-3 py-2 text-[12.5px] text-[--color-bad]"
+        class="mt-3 rounded-xl bg-[var(--color-bad)]/10 px-3 py-2 text-[12.5px] text-[var(--color-bad)]"
       >
         План не сходится: не хватает {{ eur(Math.abs(plan.unallocated)) }}
       </p>
-      <p v-else class="mt-3 text-[12.5px] text-[--color-muted]">
+      <p v-else class="mt-3 text-[12.5px] text-[var(--color-muted)]">
         Не распределено: {{ eur(plan.unallocated) }}
       </p>
     </section>
 
     <!-- Быстрый ввод траты -->
-    <section class="card animate-fade-up p-5" style="animation-delay: 60ms">
+    <section class="card p-5" v-reveal="60">
       <div class="flex items-baseline justify-between">
         <h2 class="text-[15px] font-medium">Новая трата</h2>
-        <span v-if="currency !== 'EUR' && rates[currency]" class="text-[11.5px] text-[--color-muted]">
+        <span v-if="currency !== 'EUR' && rates[currency]" class="text-[11.5px] text-[var(--color-muted)]">
           1 € = {{ (1 / rates[currency]).toFixed(2) }} {{ currency }}
         </span>
       </div>
@@ -243,8 +243,8 @@ const toneOf = (item) => (item.left < 0 ? 'bad' : item.left <= (plan.value?.warn
             type="button"
             class="rounded-full border px-3 py-1.5 text-[12.5px] transition-all duration-200"
             :class="categoryId === category.id
-              ? 'border-[--color-ink] bg-[--color-ink] text-white'
-              : 'border-[--color-line] bg-white text-[--color-muted] hover:border-[#d8d8dd] hover:text-[--color-ink]'"
+              ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[#2a1608]'
+              : 'border-[var(--color-line)] bg-white text-[var(--color-muted)] hover:border-[var(--color-line-strong)] hover:text-[var(--color-ink)]'"
             @click="categoryId = category.id"
           >
             {{ category.name }}
@@ -264,17 +264,17 @@ const toneOf = (item) => (item.left < 0 ? 'bad' : item.left <= (plan.value?.warn
 
     <!-- План по категориям -->
     <section class="space-y-2">
-      <h2 class="px-1 text-[13px] text-[--color-muted]">План по категориям</h2>
+      <h2 class="px-1 text-[13px] text-[var(--color-muted)]">План по категориям</h2>
       <div class="stagger grid gap-2 sm:grid-cols-2">
         <div v-for="(item, index) in items" :key="item.name" class="card card-hover p-4" :style="{ animationDelay: index * 35 + 'ms' }">
           <div class="flex items-baseline justify-between gap-3">
             <span class="text-[14px] font-medium">{{ item.name }}</span>
-            <span class="tabular text-[13px] text-[--color-muted]">{{ eur(item.spent) }} / {{ eur(item.plan) }}</span>
+            <span class="tabular text-[13px] text-[var(--color-muted)]">{{ eur(item.spent) }} / {{ eur(item.plan) }}</span>
           </div>
           <div class="mt-2.5">
             <Bar :value="item.spent" :max="item.plan || item.spent || 1" :tone="toneOf(item)" />
           </div>
-          <div class="mt-2 flex justify-between text-[11.5px]" :class="item.left < 0 ? 'text-[--color-bad]' : 'text-[--color-muted]'">
+          <div class="mt-2 flex justify-between text-[11.5px]" :class="item.left < 0 ? 'text-[var(--color-bad)]' : 'text-[var(--color-muted)]'">
             <span v-if="item.plan > 0">остаток {{ eur(item.left) }}</span>
             <span v-else>план не задан — траты сверх плана</span>
             <span v-if="item.plan > 0" class="tabular">{{ item.per_day.toFixed(2) }} €/день</span>
@@ -287,7 +287,7 @@ const toneOf = (item) => (item.left < 0 ? 'bad' : item.left <= (plan.value?.warn
     <section class="space-y-2">
       <button
         type="button"
-        class="flex w-full items-center gap-1.5 rounded-lg px-1 py-1 text-[13px] text-[--color-muted] transition-colors hover:text-[--color-ink]"
+        class="flex w-full items-center gap-1.5 rounded-lg px-1 py-1 text-[13px] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
         :aria-expanded="historyOpen"
         aria-controls="history-list"
         @click="toggleHistory"
@@ -305,39 +305,39 @@ const toneOf = (item) => (item.left < 0 ? 'bad' : item.left <= (plan.value?.warn
           {{ expenses.length % 10 === 1 && expenses.length % 100 !== 11 ? 'последняя' : 'последних' }}</span>
       </button>
 
-      <div v-show="historyOpen" id="history-list" class="card divide-y divide-[--color-line] overflow-hidden">
+      <div v-show="historyOpen" id="history-list" class="card divide-y divide-[var(--color-line)] overflow-hidden">
         <TransitionGroup name="list" tag="div" class="relative">
-          <div v-for="expense in expenses" :key="expense.id" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[#fafafa]">
+          <div v-for="expense in expenses" :key="expense.id" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-black/[0.04]">
             <div class="min-w-0 flex-1">
               <p class="truncate text-[14px]">
                 <span class="font-medium">{{ expense.category_name }}</span>
-                <span v-if="expense.description" class="text-[--color-muted]"> · {{ expense.description }}</span>
+                <span v-if="expense.description" class="text-[var(--color-muted)]"> · {{ expense.description }}</span>
               </p>
-              <p class="text-[11.5px] text-[--color-muted]">
+              <p class="text-[11.5px] text-[var(--color-muted)]">
                 {{ shortDate(expense.expense_date) }}
                 <span v-if="expense.currency !== 'EUR'"> · {{ expense.currency }}</span>
               </p>
             </div>
             <span class="tabular text-[14px] font-medium">−{{ eur(expense.amount) }}</span>
-            <button class="text-[12px] text-[--color-muted] transition-colors hover:text-[--color-ink]" @click="startEdit(expense)">изм.</button>
-            <button class="text-[12px] text-[--color-muted] transition-colors hover:text-[--color-bad]" @click="removeExpense(expense)">удал.</button>
+            <button class="text-[12px] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]" @click="startEdit(expense)">изм.</button>
+            <button class="text-[12px] text-[var(--color-muted)] transition-colors hover:text-[var(--color-bad)]" @click="removeExpense(expense)">удал.</button>
           </div>
         </TransitionGroup>
-        <p v-if="!expenses.length" class="px-4 py-6 text-center text-[13px] text-[--color-muted]">Пока ничего не записано</p>
+        <p v-if="!expenses.length" class="px-4 py-6 text-center text-[13px] text-[var(--color-muted)]">Пока ничего не записано</p>
       </div>
     </section>
 
     <!-- Доходы -->
     <section v-if="incomes.length" class="space-y-2">
-      <h2 class="px-1 text-[13px] text-[--color-muted]">Доходы</h2>
-      <div class="card divide-y divide-[--color-line] overflow-hidden">
+      <h2 class="px-1 text-[13px] text-[var(--color-muted)]">Доходы</h2>
+      <div class="card divide-y divide-[var(--color-line)] overflow-hidden">
         <div v-for="income in incomes" :key="income.id" class="flex items-center gap-3 px-4 py-3">
           <div class="min-w-0 flex-1">
             <p class="truncate text-[14px]">{{ income.description || 'Доход' }}</p>
-            <p class="text-[11.5px] text-[--color-muted]">{{ shortDate(income.income_date) }}</p>
+            <p class="text-[11.5px] text-[var(--color-muted)]">{{ shortDate(income.income_date) }}</p>
           </div>
-          <span class="tabular text-[14px] font-medium text-[--color-good]">+{{ eur(income.amount) }}</span>
-          <button class="text-[12px] text-[--color-muted] transition-colors hover:text-[--color-bad]" @click="removeIncome(income)">удал.</button>
+          <span class="tabular text-[14px] font-medium text-[var(--color-good)]">+{{ eur(income.amount) }}</span>
+          <button class="text-[12px] text-[var(--color-muted)] transition-colors hover:text-[var(--color-bad)]" @click="removeIncome(income)">удал.</button>
         </div>
       </div>
     </section>
@@ -377,5 +377,5 @@ const toneOf = (item) => (item.left < 0 ? 'bad' : item.left <= (plan.value?.warn
     </Modal>
   </div>
 
-  <div v-else class="card animate-fade-in p-8 text-center text-[13px] text-[--color-muted]">Загружаю данные…</div>
+  <div v-else class="card animate-fade-in p-8 text-center text-[13px] text-[var(--color-muted)]">Загружаю данные…</div>
 </template>

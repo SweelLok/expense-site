@@ -54,6 +54,15 @@ from web.security import (  # noqa: E402
     read_token,
     verify_password,
 )
+from web.caldav import (  # noqa: E402
+    CalDAVError,
+    SET_CALDAV_CALENDAR,
+    SET_CALDAV_PASSWORD,
+    SET_CALDAV_USERNAME,
+    LOCAL_TZ,
+    build_client,
+    encrypt_value,
+)
 
 # --- Часовой пояс --------------------------------------------------------
 # Без TZ контейнер живёт в UTC и «сегодня» съезжает на день назад.
@@ -229,6 +238,59 @@ class ResetIn(BaseModel):
     confirm: str
 
 
+class TodoIn(BaseModel):
+    text: str = Field(min_length=1, max_length=500)
+    note: str | None = None
+    due_date: str | None = None
+
+
+class TodoPatch(BaseModel):
+    text: str | None = Field(default=None, min_length=1, max_length=500)
+    note: str | None = None
+    due_date: str | None = None
+    done: bool | None = None
+
+
+class NoteIn(BaseModel):
+    title: str | None = Field(default=None, max_length=300)
+    body: str = ""
+
+
+class NotePatch(BaseModel):
+    title: str | None = Field(default=None, max_length=300)
+    body: str | None = None
+    pinned: bool | None = None
+
+
+class HabitIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    emoji: str | None = Field(default=None, max_length=8)
+
+
+class HabitPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    emoji: str | None = Field(default=None, max_length=8)
+
+
+class HabitLogIn(BaseModel):
+    date: str
+    done: bool
+
+
+class CalendarEventIn(BaseModel):
+    summary: str = Field(min_length=1, max_length=300)
+    start: str
+    end: str | None = None
+    description: str | None = None
+    all_day: bool = False
+
+
+class CalendarSettingsIn(BaseModel):
+    username: str | None = None
+    password: str | None = None
+    calendar: str | None = None
+
+
 # --- Хелперы -------------------------------------------------------------
 
 def today_str() -> str:
@@ -250,6 +312,25 @@ def normalize_date(value: str | None) -> str:
         return datetime(datetime.now().year, int(month), int(day)).strftime("%Y-%m-%d")
     except (ValueError, AttributeError):
         raise HTTPException(status_code=422, detail=f"не понимаю дату: {value!r}")
+
+
+def optional_date(value: str | None) -> str | None:
+    """Дата для todo: пусто/прочерк → None (без срока), иначе YYYY-MM-DD."""
+    if value in (None, "", "-"):
+        return None
+    return normalize_date(value)
+
+
+def parse_dt(value: str) -> datetime:
+    """'YYYY-MM-DD' → начало дня (локальная зона); иначе ISO с временем."""
+    text = value.strip()
+    if len(text) == 10:
+        return datetime.strptime(text, "%Y-%m-%d").replace(tzinfo=LOCAL_TZ)
+    text = text.replace("Z", "+00:00")
+    dt = datetime.fromisoformat(text)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=LOCAL_TZ)
+    return dt
 
 
 async def expense_payload(expense_id: int, user_id: int) -> dict:
@@ -661,6 +742,244 @@ async def put_settings(payload: SettingsIn, user_id: int = Depends(require_user)
     if payload.balance is not None:
         await db.set_balance(user_id, payload.balance)
     return await get_settings(user_id)
+
+
+# --- Задачи (todo) -------------------------------------------------------
+
+@app.get("/api/todos")
+async def list_todos(include_done: bool = True, user_id: int = Depends(require_user)) -> dict:
+    return {"todos": await db.get_todos(user_id, include_done=include_done)}
+
+
+@app.post("/api/todos", status_code=201)
+async def create_todo(payload: TodoIn, user_id: int = Depends(require_user)) -> dict:
+    todo_id = await db.add_todo(user_id, payload.text.strip(), payload.note or None, optional_date(payload.due_date))
+    return {"todo": await db.get_todo(user_id, todo_id), "todos": await db.get_todos(user_id)}
+
+
+@app.patch("/api/todos/{todo_id}")
+async def edit_todo(todo_id: int, payload: TodoPatch, user_id: int = Depends(require_user)) -> dict:
+    if not await db.get_todo(user_id, todo_id):
+        raise HTTPException(status_code=404, detail="задача не найдена")
+    fields: dict = {}
+    if payload.text is not None:
+        fields["text"] = payload.text.strip()
+    if payload.note is not None:
+        fields["note"] = payload.note or None
+    if payload.due_date is not None:
+        fields["due_date"] = optional_date(payload.due_date)
+    if payload.done is not None:
+        fields["done"] = 1 if payload.done else 0
+        fields["completed_at"] = today_str() if payload.done else None
+    if fields:
+        await db.update_todo(user_id, todo_id, **fields)
+    return {"todo": await db.get_todo(user_id, todo_id), "todos": await db.get_todos(user_id)}
+
+
+@app.delete("/api/todos/{todo_id}")
+async def remove_todo(todo_id: int, user_id: int = Depends(require_user)) -> dict:
+    if not await db.delete_todo(user_id, todo_id):
+        raise HTTPException(status_code=404, detail="задача не найдена")
+    return {"ok": True, "todos": await db.get_todos(user_id)}
+
+
+# --- Заметки -------------------------------------------------------------
+
+@app.get("/api/notes")
+async def list_notes(user_id: int = Depends(require_user)) -> dict:
+    return {"notes": await db.get_notes(user_id)}
+
+
+@app.post("/api/notes", status_code=201)
+async def create_note(payload: NoteIn, user_id: int = Depends(require_user)) -> dict:
+    note_id = await db.add_note(user_id, (payload.title or "").strip() or None, payload.body or "")
+    return {"note": await db.get_note(user_id, note_id), "notes": await db.get_notes(user_id)}
+
+
+@app.patch("/api/notes/{note_id}")
+async def edit_note(note_id: int, payload: NotePatch, user_id: int = Depends(require_user)) -> dict:
+    if not await db.get_note(user_id, note_id):
+        raise HTTPException(status_code=404, detail="заметка не найдена")
+    fields: dict = {}
+    if payload.title is not None:
+        fields["title"] = payload.title.strip() or None
+    if payload.body is not None:
+        fields["body"] = payload.body
+    if payload.pinned is not None:
+        fields["pinned"] = 1 if payload.pinned else 0
+    if fields:
+        await db.update_note(user_id, note_id, **fields)
+    return {"note": await db.get_note(user_id, note_id), "notes": await db.get_notes(user_id)}
+
+
+@app.delete("/api/notes/{note_id}")
+async def remove_note(note_id: int, user_id: int = Depends(require_user)) -> dict:
+    if not await db.delete_note(user_id, note_id):
+        raise HTTPException(status_code=404, detail="заметка не найдена")
+    return {"ok": True, "notes": await db.get_notes(user_id)}
+
+
+# --- Привычки ------------------------------------------------------------
+
+@app.get("/api/habits")
+async def list_habits(start: str | None = None, end: str | None = None,
+                      user_id: int = Depends(require_user)) -> dict:
+    habits = await db.get_habits(user_id)
+    log: list[dict] = []
+    if start and end:
+        log = await db.get_habit_log(user_id, start, end)
+    return {"habits": habits, "log": log}
+
+
+@app.post("/api/habits", status_code=201)
+async def create_habit(payload: HabitIn, user_id: int = Depends(require_user)) -> dict:
+    habit_id = await db.add_habit(user_id, payload.name.strip(), (payload.emoji or "").strip() or None)
+    return {"habit": await db.get_habit(user_id, habit_id), "habits": await db.get_habits(user_id)}
+
+
+@app.patch("/api/habits/{habit_id}")
+async def edit_habit(habit_id: int, payload: HabitPatch, user_id: int = Depends(require_user)) -> dict:
+    if not await db.get_habit(user_id, habit_id):
+        raise HTTPException(status_code=404, detail="привычка не найдена")
+    fields: dict = {}
+    if payload.name is not None:
+        fields["name"] = payload.name.strip()
+    if payload.emoji is not None:
+        fields["emoji"] = payload.emoji.strip() or None
+    if fields:
+        await db.update_habit(user_id, habit_id, **fields)
+    return {"habit": await db.get_habit(user_id, habit_id), "habits": await db.get_habits(user_id)}
+
+
+@app.delete("/api/habits/{habit_id}")
+async def remove_habit(habit_id: int, user_id: int = Depends(require_user)) -> dict:
+    if not await db.delete_habit(user_id, habit_id):
+        raise HTTPException(status_code=404, detail="привычка не найдена")
+    return {"ok": True, "habits": await db.get_habits(user_id)}
+
+
+@app.post("/api/habits/{habit_id}/log")
+async def mark_habit(habit_id: int, payload: HabitLogIn, user_id: int = Depends(require_user)) -> dict:
+    if not await db.get_habit(user_id, habit_id):
+        raise HTTPException(status_code=404, detail="привычка не найдена")
+    date = normalize_date(payload.date)
+    await db.mark_habit(user_id, habit_id, date, payload.done)
+    return {"ok": True, "habit_id": habit_id, "date": date, "done": payload.done}
+
+
+# --- Календарь (iCloud CalDAV) -------------------------------------------
+
+# Кеш событий: iCloud отвечает ~5 с на каждый date_search, поэтому повторные
+# запросы того же диапазона отдаём из памяти (TTL 2 минуты).
+_calendar_cache: dict = {}
+CALENDAR_CACHE_TTL = 120.0
+
+
+async def get_caldav_client(user_id: int):
+    settings = {
+        SET_CALDAV_USERNAME: await db.get_setting(user_id, SET_CALDAV_USERNAME),
+        SET_CALDAV_PASSWORD: await db.get_setting(user_id, SET_CALDAV_PASSWORD),
+        SET_CALDAV_CALENDAR: await db.get_setting(user_id, SET_CALDAV_CALENDAR),
+    }
+    return build_client(settings, SESSION_SECRET)
+
+
+@app.get("/api/calendar/status")
+async def calendar_status(user_id: int = Depends(require_user)) -> dict:
+    client = await get_caldav_client(user_id)
+    if client is None:
+        return {"connected": False, "calendars": [], "selected": None, "error": None}
+    try:
+        cals = client.calendars()
+    except CalDAVError as exc:
+        return {"connected": False, "calendars": [], "selected": None, "error": str(exc)}
+    selected = client.default_name()
+    return {"connected": True, "calendars": cals, "selected": selected, "error": None}
+
+
+@app.get("/api/calendar/settings")
+async def get_calendar_settings(user_id: int = Depends(require_user)) -> dict:
+    username = await db.get_setting(user_id, SET_CALDAV_USERNAME)
+    has_password = bool(await db.get_setting(user_id, SET_CALDAV_PASSWORD))
+    calendar = await db.get_setting(user_id, SET_CALDAV_CALENDAR)
+    return {"username": username, "has_password": has_password, "calendar": calendar}
+
+
+@app.put("/api/calendar/settings")
+async def put_calendar_settings(payload: CalendarSettingsIn, user_id: int = Depends(require_user)) -> dict:
+    if payload.username is not None:
+        await db.set_setting(user_id, SET_CALDAV_USERNAME, payload.username.strip())
+    if payload.password is not None and payload.password.strip():
+        await db.set_setting(user_id, SET_CALDAV_PASSWORD, encrypt_value(SESSION_SECRET, payload.password.strip()))
+    if payload.calendar is not None:
+        await db.set_setting(user_id, SET_CALDAV_CALENDAR, payload.calendar.strip())
+    return await calendar_status(user_id)
+
+
+@app.delete("/api/calendar/settings")
+async def disconnect_calendar(user_id: int = Depends(require_user)) -> dict:
+    """Отключение iCloud: стирает Apple ID, пароль и выбранный календарь."""
+    for key in (SET_CALDAV_USERNAME, SET_CALDAV_PASSWORD, SET_CALDAV_CALENDAR):
+        await db.delete_setting(user_id, key)
+    _calendar_cache.clear()
+    return {"connected": False, "calendars": [], "selected": None, "error": None}
+
+
+@app.get("/api/calendar/events")
+async def calendar_events(start: str, end: str, user_id: int = Depends(require_user)) -> dict:
+    client = await get_caldav_client(user_id)
+    if client is None:
+        raise HTTPException(status_code=400, detail="календарь не подключён — укажи Apple ID и пароль приложения")
+    try:
+        s = datetime.strptime(start, "%Y-%m-%d").date()
+        e = datetime.strptime(end, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=422, detail="даты должны быть в формате YYYY-MM-DD")
+    cache_key = (user_id, start, end)
+    cached = _calendar_cache.get(cache_key)
+    if cached and time.time() - cached[0] < CALENDAR_CACHE_TTL:
+        return {"events": cached[1]}
+    try:
+        result = client.events(s, e)
+    except CalDAVError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    _calendar_cache[cache_key] = (time.time(), result)
+    return {"events": result}
+
+
+@app.post("/api/calendar/events", status_code=201)
+async def create_calendar_event(payload: CalendarEventIn, user_id: int = Depends(require_user)) -> dict:
+    client = await get_caldav_client(user_id)
+    if client is None:
+        raise HTTPException(status_code=400, detail="календарь не подключён")
+    try:
+        start_dt = parse_dt(payload.start)
+        end_dt = parse_dt(payload.end) if payload.end else None
+    except ValueError:
+        raise HTTPException(status_code=422, detail="не понимаю дату/время события")
+    if end_dt is not None and end_dt <= start_dt:
+        raise HTTPException(status_code=422, detail="конец события должен быть позже начала")
+    try:
+        uid = client.add_event(payload.summary.strip(), start_dt, end_dt, payload.description, payload.all_day)
+    except CalDAVError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    _calendar_cache.clear()
+    return {"uid": uid}
+
+
+@app.delete("/api/calendar/events/{uid}")
+async def delete_calendar_event(uid: str, user_id: int = Depends(require_user)) -> dict:
+    client = await get_caldav_client(user_id)
+    if client is None:
+        raise HTTPException(status_code=400, detail="календарь не подключён")
+    try:
+        deleted = client.delete_event(uid)
+    except CalDAVError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    if not deleted:
+        raise HTTPException(status_code=404, detail="событие не найдено")
+    _calendar_cache.clear()
+    return {"ok": True}
 
 
 # --- Статистика, экспорт, бэкап ------------------------------------------

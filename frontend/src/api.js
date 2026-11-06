@@ -64,6 +64,34 @@ export const api = {
   stats: (period) => api.call('/stats?period=' + period),
   monthly: (months = 12) => api.call('/monthly?months=' + months),
   reset: (confirm) => api.call('/reset', { method: 'POST', body: { confirm } }),
+
+  // задачи
+  todos: () => api.call('/todos'),
+  addTodo: (payload) => api.call('/todos', { method: 'POST', body: payload }),
+  patchTodo: (id, payload) => api.call(`/todos/${id}`, { method: 'PATCH', body: payload }),
+  deleteTodo: (id) => api.call(`/todos/${id}`, { method: 'DELETE' }),
+
+  // заметки
+  notes: () => api.call('/notes'),
+  addNote: (payload) => api.call('/notes', { method: 'POST', body: payload }),
+  patchNote: (id, payload) => api.call(`/notes/${id}`, { method: 'PATCH', body: payload }),
+  deleteNote: (id) => api.call(`/notes/${id}`, { method: 'DELETE' }),
+
+  // привычки
+  habits: (start, end) => api.call(`/habits?start=${start}&end=${end}`),
+  addHabit: (payload) => api.call('/habits', { method: 'POST', body: payload }),
+  patchHabit: (id, payload) => api.call(`/habits/${id}`, { method: 'PATCH', body: payload }),
+  deleteHabit: (id) => api.call(`/habits/${id}`, { method: 'DELETE' }),
+  markHabit: (id, payload) => api.call(`/habits/${id}/log`, { method: 'POST', body: payload }),
+
+  // календарь (iCloud CalDAV)
+  calendarStatus: () => api.call('/calendar/status'),
+  calendarSettings: () => api.call('/calendar/settings'),
+  saveCalendarSettings: (payload) => api.call('/calendar/settings', { method: 'PUT', body: payload }),
+  disconnectCalendar: () => api.call('/calendar/settings', { method: 'DELETE' }),
+  calendarEvents: (start, end) => api.call(`/calendar/events?start=${start}&end=${end}`),
+  addCalendarEvent: (payload) => api.call('/calendar/events', { method: 'POST', body: payload }),
+  deleteCalendarEvent: (uid) => api.call(`/calendar/events/${encodeURIComponent(uid)}`, { method: 'DELETE' }),
 }
 
 export const download = (path, filename) => {

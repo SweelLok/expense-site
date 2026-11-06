@@ -99,16 +99,16 @@ const focus = computed(() => props.series[hover.value ?? count.value - 1] || nul
     <!-- Считыватель: месяц под курсором, иначе — последний -->
     <div v-if="focus" class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <span class="text-[13.5px] font-medium">{{ focus.title }}</span>
-      <span class="text-[12.5px] text-[--color-muted]">
-        траты <span class="tabular text-[--color-ink]">{{ eur(focus.spent) }}</span>
+      <span class="text-[12.5px] text-[var(--color-muted)]">
+        траты <span class="tabular text-[var(--color-ink)]">{{ eur(focus.spent) }}</span>
       </span>
-      <span v-if="focus.income > 0" class="text-[12.5px] text-[--color-muted]">
-        доходы <span class="tabular text-[--color-good]">{{ eur(focus.income) }}</span>
+      <span v-if="focus.income > 0" class="text-[12.5px] text-[var(--color-muted)]">
+        доходы <span class="tabular text-[var(--color-good)]">{{ eur(focus.income) }}</span>
       </span>
-      <span class="text-[12.5px] text-[--color-muted]">
-        накоплено <span class="tabular text-[--color-accent]">{{ eur(focus.cumulative) }}</span>
+      <span class="text-[12.5px] text-[var(--color-muted)]">
+        накоплено <span class="tabular text-[var(--color-accent)]">{{ eur(focus.cumulative) }}</span>
       </span>
-      <span v-if="focus.count" class="text-[12.5px] text-[--color-muted]">{{ focus.count }} зап.</span>
+      <span v-if="focus.count" class="text-[12.5px] text-[var(--color-muted)]">{{ focus.count }} зап.</span>
     </div>
 
     <svg
@@ -141,7 +141,7 @@ const focus = computed(() => props.series[hover.value ?? count.value - 1] || nul
         :key="'dot' + month.month"
         :cx="center(index)" :cy="cumY(month.cumulative)"
         :r="hover === index ? units(3.4) : units(1.8)"
-        fill="#fff" stroke="var(--color-accent)" :stroke-width="units(1.6)"
+        fill="var(--color-bg)" stroke="var(--color-accent)" :stroke-width="units(1.6)"
       />
 
       <!-- траты за месяц -->
@@ -175,12 +175,12 @@ const focus = computed(() => props.series[hover.value ?? count.value - 1] || nul
       />
     </svg>
 
-    <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-[--color-muted]">
+    <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-[var(--color-muted)]">
       <span class="inline-flex items-center gap-1.5">
-        <span class="h-2 w-2 rounded-sm bg-[--color-accent]"></span>траты за месяц
+        <span class="h-2 w-2 rounded-sm bg-[var(--color-accent)]"></span>траты за месяц
       </span>
       <span class="inline-flex items-center gap-1.5">
-        <span class="h-0.5 w-4 rounded-full bg-[--color-accent]"></span>накопленные траты
+        <span class="h-0.5 w-4 rounded-full bg-[var(--color-accent)]"></span>накопленные траты
       </span>
       <span class="tabular ml-auto">макс. месяц {{ eur(maxBar) }} · макс. накопление {{ eur(maxCum) }}</span>
     </div>

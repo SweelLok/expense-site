@@ -18,14 +18,14 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
 <template>
   <Teleport to="body">
     <Transition name="page" appear>
-      <div class="fixed inset-0 z-50 flex items-end justify-center bg-[#0f0f10]/25 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" @click.self="emit('close')">
+      <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" @click.self="emit('close')">
         <div
-          class="card animate-pop w-full rounded-b-none p-5 shadow-[0_30px_80px_-40px_rgba(15,15,16,0.55)] sm:rounded-2xl"
+          class="card animate-pop w-full rounded-b-none p-5 shadow-[0_30px_90px_-40px_rgba(0,0,0,0.85)] sm:rounded-2xl"
           :style="{ maxWidth: width }"
         >
           <div class="mb-4 flex items-start justify-between gap-4">
             <h2 class="text-[15px] font-medium">{{ title }}</h2>
-            <button class="text-[--color-muted] transition-colors hover:text-[--color-ink]" @click="emit('close')">✕</button>
+            <button class="text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]" @click="emit('close')">✕</button>
           </div>
           <slot />
         </div>

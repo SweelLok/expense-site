@@ -22,7 +22,7 @@ const color = computed(() => {
 </script>
 
 <template>
-  <div class="w-full overflow-hidden rounded-full bg-[#f1f1f4]" :style="{ height }">
+  <div class="w-full overflow-hidden rounded-full bg-black/10" :style="{ height }">
     <div
       class="h-full rounded-full transition-[width,background-color] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
       :style="{ width: percent + '%', background: color }"

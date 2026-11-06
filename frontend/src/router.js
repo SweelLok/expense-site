@@ -5,6 +5,10 @@ import { bootstrap, state } from './store'
 const routes = [
   { path: '/login', name: 'login', component: () => import('./views/Login.vue'), meta: { public: true } },
   { path: '/', name: 'dashboard', component: () => import('./views/Dashboard.vue') },
+  { path: '/calendar', name: 'calendar', component: () => import('./views/Calendar.vue') },
+  { path: '/todo', name: 'todo', component: () => import('./views/Todo.vue') },
+  { path: '/notes', name: 'notes', component: () => import('./views/Notes.vue') },
+  { path: '/habits', name: 'habits', component: () => import('./views/Habits.vue') },
   { path: '/stats', name: 'stats', component: () => import('./views/Stats.vue') },
   { path: '/subs', name: 'subs', component: () => import('./views/Subs.vue') },
   { path: '/admin', name: 'admin', component: () => import('./views/Admin.vue') },
